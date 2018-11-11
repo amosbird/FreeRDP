@@ -143,8 +143,8 @@ void xf_keyboard_key_press(xfContext* xfc, BYTE keycode, KeySym keysym)
 
 	xfc->KeyboardState[keycode] = TRUE;
 
-	if (xf_keyboard_handle_special_keys(xfc, keysym))
-		return;
+	/* if (xf_keyboard_handle_special_keys(xfc, keysym)) */
+	/* 	return; */
 
 	xf_keyboard_send_key(xfc, TRUE, keycode);
 }
