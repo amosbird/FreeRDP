@@ -1420,22 +1420,29 @@ void gdi_free(freerdp* instance)
 
 BOOL gdi_send_suppress_output(rdpGdi* gdi, BOOL suppress)
 {
-	RECTANGLE_16 rect;
-	rdpSettings* settings = NULL;
-	rdpUpdate* update = NULL;
+    return TRUE;
+	/* RECTANGLE_16 rect; */
+	/* rdpSettings* settings = NULL; */
+	/* rdpUpdate* update = NULL; */
 
-	if (!gdi || !gdi->context->settings || !gdi->context->update)
-		return FALSE;
+	/* if (!gdi || !gdi->context->settings || !gdi->context->update) */
+	/* { */
+    /*     WLog_WARN(TAG, "amosbird2", __FUNCTION__); */
+	/* 	return FALSE; */
+	/* } */
 
-	if (gdi->suppressOutput == suppress)
-		return TRUE;
+	/* if (gdi->suppressOutput == suppress) */
+	/* { */
+    /*     WLog_WARN(TAG, "amosbird3", __FUNCTION__); */
+	/* 	return TRUE; */
+	/* } */
 
-	gdi->suppressOutput = suppress;
-	settings = gdi->context->settings;
-	update = gdi->context->update;
-	rect.left = 0;
-	rect.top = 0;
-	rect.right = freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth);
-	rect.bottom = freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight);
-	return update->SuppressOutput(gdi->context, !suppress, &rect);
+	/* gdi->suppressOutput = suppress; */
+	/* settings = gdi->context->settings; */
+	/* update = gdi->context->update; */
+	/* rect.left = 0; */
+	/* rect.top = 0; */
+	/* rect.right = freerdp_settings_get_uint32(settings, FreeRDP_DesktopWidth); */
+	/* rect.bottom = freerdp_settings_get_uint32(settings, FreeRDP_DesktopHeight); */
+	/* return update->SuppressOutput(gdi->context, !suppress, &rect); */
 }
