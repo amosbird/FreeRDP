@@ -2395,7 +2395,7 @@ xfClipboard* xf_clipboard_new(xfContext* xfc, BOOL relieveFilenameRestriction)
 	selectionAtom =
 	    freerdp_settings_get_string(xfc->common.context.settings, FreeRDP_ClipboardUseSelection);
 	if (!selectionAtom)
-		selectionAtom = "CLIPBOARD";
+		selectionAtom = "PRIMARY";
 
 	clipboard->clipboard_atom = Logging_XInternAtom(xfc->log, xfc->display, selectionAtom, FALSE);
 
