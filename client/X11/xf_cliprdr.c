@@ -2261,11 +2261,12 @@ xfClipboard* xf_clipboard_new(xfContext* xfc, BOOL relieveFilenameRestriction)
 	clipboard->requestedFormatId = -1;
 	clipboard->root_window = DefaultRootWindow(xfc->display);
 
-	selectionAtom =
-	    freerdp_settings_get_string(xfc->common.context.settings, FreeRDP_ClipboardUseSelection);
-	if (!selectionAtom)
-		selectionAtom = "CLIPBOARD";
+	/* selectionAtom = */
+	/*     freerdp_settings_get_string(xfc->common.context.settings, FreeRDP_ClipboardUseSelection); */
+	/* if (!selectionAtom) */
+	/* 	selectionAtom = "CLIPBOARD"; */
 
+	selectionAtom = "PRIMARY";
 	clipboard->clipboard_atom = XInternAtom(xfc->display, selectionAtom, FALSE);
 
 	if (clipboard->clipboard_atom == None)
