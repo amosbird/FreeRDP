@@ -570,8 +570,8 @@ void xf_keyboard_key_press(xfContext* xfc, const XKeyEvent* event, KeySym keysym
 	last = xfc->KeyboardState[event->keycode];
 	xfc->KeyboardState[event->keycode] = TRUE;
 
-	if (xf_keyboard_handle_special_keys(xfc, keysym))
-		return;
+	/* if (xf_keyboard_handle_special_keys(xfc, keysym)) */
+	/* 	return; */
 
 	xf_keyboard_send_key(xfc, TRUE, last, event);
 }
@@ -584,7 +584,7 @@ void xf_keyboard_key_release(xfContext* xfc, const XKeyEvent* event, KeySym keys
 
 	BOOL last = xfc->KeyboardState[event->keycode];
 	xfc->KeyboardState[event->keycode] = FALSE;
-	xf_keyboard_handle_special_keys_release(xfc, keysym);
+	/* xf_keyboard_handle_special_keys_release(xfc, keysym); */
 	xf_keyboard_send_key(xfc, FALSE, last, event);
 }
 
