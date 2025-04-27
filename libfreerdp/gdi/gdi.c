@@ -1460,6 +1460,8 @@ void gdi_free(freerdp* instance)
 
 BOOL gdi_send_suppress_output(rdpGdi* gdi, BOOL suppress)
 {
+	return TRUE;
+
 	if (!gdi || !gdi->context)
 		return FALSE;
 
