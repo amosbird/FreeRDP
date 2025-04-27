@@ -1025,15 +1025,8 @@ void xf_keyboard_key_press(xfContext* xfc, const XKeyEvent* event, KeySym keysym
 	const BOOL last = xfc->KeyboardState[event->keycode];
 	xfc->KeyboardState[event->keycode] = TRUE;
 
-	if (xf_keyboard_handle_special_keys(xfc, keysym))
-	{
-		if (defer)
-		{
-			xfc->deferredAlt.pending = 0;
-			xfc->KeyboardState[event->keycode] = last;
-		}
-		return;
-	}
+	/* Ctrl+Alt hotkeys belong to the local desktop: never let FreeRDP's own special-key
+	 * handling (fullscreen/minimize/disconnect/ungrab/action scripts) act on them. */
 	if (defer)
 	{
 		const UINT32 mask = xf_keyboard_alt_mask(xfc, (KeyCode)event->keycode);
@@ -1068,7 +1061,6 @@ void xf_keyboard_key_release(xfContext* xfc, const XKeyEvent* event, KeySym keys
 
 	const BOOL last = xfc->KeyboardState[event->keycode];
 	xfc->KeyboardState[event->keycode] = FALSE;
-	xf_keyboard_handle_special_keys_release(xfc, keysym);
 	if (xfc->deferAlt)
 	{
 		const UINT32 mask = xf_keyboard_alt_mask(xfc, (KeyCode)event->keycode);
