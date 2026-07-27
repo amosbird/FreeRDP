@@ -710,7 +710,7 @@ static CLIPRDR_FORMAT* xf_cliprdr_get_formats_from_targets(xfClipboard* clipboar
 			goto out;
 		}
 
-		if (!(formats = (CLIPRDR_FORMAT*)calloc(length, sizeof(CLIPRDR_FORMAT))))
+		if (!(formats = (CLIPRDR_FORMAT*)calloc(length + clipboard->numClientFormats, sizeof(CLIPRDR_FORMAT))))
 		{
 			WLog_ERR(TAG, "failed to allocate %lu CLIPRDR_FORMAT structs", length);
 			goto out;
@@ -723,7 +723,14 @@ static CLIPRDR_FORMAT* xf_cliprdr_get_formats_from_targets(xfClipboard* clipboar
 	for (unsigned long i = 0; i < proplength; i++)
 	{
 		Atom tatom = ((Atom*)data)[i];
-		const xfCliprdrFormat* format = xf_cliprdr_get_client_format_by_atom(clipboard, tatom);
+
+		/* Iterate ALL clientFormats matching this atom so that both CF_DIB and
+		 * named formats (PNG, JFIF) registered for the same atom get discovered. */
+		for (UINT32 fi = 0; fi < clipboard->numClientFormats; fi++)
+		{
+			const xfCliprdrFormat* format = &clipboard->clientFormats[fi];
+			if (format->atom != tatom)
+				continue;
 
 		if (xf_cliprdr_should_add_format(formats, *numFormats, format))
 		{
@@ -753,6 +760,41 @@ static CLIPRDR_FORMAT* xf_cliprdr_get_formats_from_targets(xfClipboard* clipboar
 				cformat->formatName = NULL;
 
 			*numFormats += 1;
+		}
+		} /* end for fi (clientFormats) */
+	}
+
+	/* If we have a compressed named image format (PNG/JFIF) available from
+	 * a registered clientFormat, and also have CF_DIB in the list, remove CF_DIB.
+	 * This forces Windows to request PNG instead, reducing transfer from ~8MB to ~500KB.
+	 * shortcut: if Windows app doesn't support PNG, image paste won't work;
+	 * upgrade path: make this configurable via a command-line option. */
+	{
+		BOOL hasNamedImageFormat = FALSE;
+		for (UINT32 ci = 0; ci < clipboard->numClientFormats; ci++)
+		{
+			const xfCliprdrFormat* cf = &clipboard->clientFormats[ci];
+			if (cf->isImage && cf->formatName != NULL)
+			{
+				hasNamedImageFormat = TRUE;
+				break;
+			}
+		}
+		if (hasNamedImageFormat && isImage)
+		{
+			UINT32 dst = 0;
+			for (UINT32 src = 0; src < *numFormats; src++)
+			{
+				if (formats[src].formatId == CF_DIB || formats[src].formatId == CF_DIBV5)
+				{
+					free(formats[src].formatName);
+					continue;
+				}
+				if (dst != src)
+					formats[dst] = formats[src];
+				dst++;
+			}
+			*numFormats = dst;
 		}
 	}
 
@@ -2535,6 +2577,34 @@ xfClipboard* xf_clipboard_new(xfContext* xfc, BOOL relieveFilenameRestriction)
 		clientFormat->atom = Logging_XInternAtom(xfc->log, xfc->display, mime_bmp, False);
 		clientFormat->formatToRequest = CF_DIB;
 		clientFormat->isImage = TRUE;
+	}
+
+	/* Register PNG and JFIF as named clipboard formats. Windows apps that support
+	 * RegisterClipboardFormat("PNG") / RegisterClipboardFormat("JFIF") can request
+	 * compressed image data directly, avoiding the ~8MB raw CF_DIB transfer. */
+	{
+		const DWORD pngFormat = ClipboardGetFormatId(xfc->clipboard->system, mime_png);
+		if (pngFormat != 0)
+		{
+			clientFormat = &clipboard->clientFormats[n++];
+			clientFormat->localFormat = pngFormat;
+			clientFormat->atom = Logging_XInternAtom(xfc->log, xfc->display, mime_png, False);
+			clientFormat->formatToRequest = pngFormat;
+			clientFormat->formatName = _strdup("PNG");
+			clientFormat->isImage = TRUE;
+		}
+	}
+	{
+		const DWORD jpegFormat = ClipboardGetFormatId(xfc->clipboard->system, mime_jpeg);
+		if (jpegFormat != 0)
+		{
+			clientFormat = &clipboard->clientFormats[n++];
+			clientFormat->localFormat = jpegFormat;
+			clientFormat->atom = Logging_XInternAtom(xfc->log, xfc->display, mime_jpeg, False);
+			clientFormat->formatToRequest = jpegFormat;
+			clientFormat->formatName = _strdup("JFIF");
+			clientFormat->isImage = TRUE;
+		}
 	}
 
 	clientFormat = &clipboard->clientFormats[n++];
