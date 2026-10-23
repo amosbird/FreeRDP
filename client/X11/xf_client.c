@@ -1766,11 +1766,6 @@ BOOL xf_setup_x11(xfContext* xfc)
 	WINPR_ASSERT(xfc);
 	xfc->UseXThreads = TRUE;
 
-#if !defined(NDEBUG)
-	/* uncomment below if debugging to prevent keyboard grab */
-	xfc->debug = TRUE;
-#endif
-
 	if (xfc->UseXThreads)
 	{
 		if (!XInitThreads())
