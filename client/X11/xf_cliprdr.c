@@ -120,6 +120,12 @@ struct xf_clipboard
 	wArrayList* pending_responses;
 	wArrayList* queued_responses;
 
+	/* Number of format data requests already sent to the server whose pending selection
+	 * requests were discarded (by a new server format list). Format data responses carry
+	 * no request ID and arrive in request order, so these responses must be dropped
+	 * instead of being matched against newer pending requests. */
+	size_t stale_responses;
+
 	Window owner;
 	BOOL sync;
 
@@ -2079,6 +2085,11 @@ static UINT xf_cliprdr_monitor_ready(CliprdrClientContext* context,
 
 	WINPR_UNUSED(monitorReady);
 
+	/* New channel session, nothing from a previous one can still be in flight. */
+	xf_lock_x11(clipboard->xfc);
+	clipboard->stale_responses = 0;
+	xf_unlock_x11(clipboard->xfc);
+
 	const UINT ret = xf_cliprdr_send_client_capabilities(clipboard);
 	if (ret != CHANNEL_RC_OK)
 		return ret;
@@ -2197,8 +2208,14 @@ static UINT xf_cliprdr_server_format_list(CliprdrClientContext* context,
 
 	xf_lock_x11(xfc);
 
-	/* Clear the active SelectionRequest, as it is now invalid */
+	/* Clear the active SelectionRequest, as it is now invalid.
+	 * Pending entries mean a format data request is already in flight; the server will still
+	 * answer it, so remember to drop that answer instead of handing it to a newer request. */
+	ArrayList_Lock(clipboard->pending_responses);
+	if (ArrayList_Count(clipboard->pending_responses) > 0)
+		clipboard->stale_responses++;
 	ArrayList_Clear(clipboard->pending_responses);
+	ArrayList_Unlock(clipboard->pending_responses);
 	ArrayList_Clear(clipboard->queued_responses);
 
 	xf_cliprdr_clear_cached_data(clipboard);
@@ -2396,6 +2413,19 @@ xf_cliprdr_server_format_data_response(CliprdrClientContext* context,
 	xf_lock_x11(xfc);
 	ArrayList_Lock(clipboard->pending_responses);
 	ArrayList_Lock(clipboard->queued_responses);
+	if (clipboard->stale_responses > 0)
+	{
+		clipboard->stale_responses--;
+		WLog_Print(clipboard->log, WLOG_DEBUG,
+		           "dropping stale format data response (%" PRIu32 " bytes, flags 0x%04" PRIx16
+		           ")",
+		           size, formatDataResponse->common.msgFlags);
+		ArrayList_Unlock(clipboard->queued_responses);
+		ArrayList_Unlock(clipboard->pending_responses);
+		xf_unlock_x11(xfc);
+		return CHANNEL_RC_OK;
+	}
+
 	if (formatDataResponse->common.msgFlags == CB_RESPONSE_FAIL)
 	{
 		WLog_Print(clipboard->log, WLOG_WARN,
