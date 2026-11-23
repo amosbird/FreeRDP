@@ -238,6 +238,8 @@ static void channel_terminated(Plugin* plugin)
 
 	if (plugin->writeTerminated)
 		SetEvent(plugin->writeTerminated);
+	if (plugin->hProcess)
+		(void)TerminateProcess(plugin->hProcess, 0);
 
 	if (plugin->copyThread)
 	{
@@ -251,7 +253,6 @@ static void channel_terminated(Plugin* plugin)
 
 	(void)CloseHandle(plugin->hStdInputWrite);
 	(void)CloseHandle(plugin->hStdOutputRead);
-	TerminateProcess(plugin->hProcess, 0);
 	(void)CloseHandle(plugin->hProcess);
 	free(plugin->commandline);
 	free(plugin);
